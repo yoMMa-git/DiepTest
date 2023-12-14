@@ -14,7 +14,7 @@ const speed = 3 // speed of particles
 
 const gameBtn = document.querySelector('#game_button')
 const moduleBtn = document.querySelector('#module_button')
-const finScore = document.querySelector('#final_score')
+const finScore = document.querySelector('#final-score')
 
 console.log(gsap)
 
@@ -143,7 +143,7 @@ function init() {
     partArray = []
     scoreL = 0
     score.innerHTML = scoreL
-    final_score.innerHTML = scoreL
+    finScore.innerHTML = scoreL
 }
 
 let animID // var, but can't be used outside the box (in our situation - outside of the code)

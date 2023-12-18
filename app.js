@@ -21,27 +21,30 @@ const backendProj = {} // array for our projectiles
 let projID = 0
 
 io.on('connection', (socket) => { // for one player use 'socket.emit()' (socket - for local user, io - for every user)
-    backendPlayers[socket.id] = {
-        x: Math.round(Math.random() * 500),
-        y: Math.round(Math.random() * 500),
-        color: `hsl(${Math.random() * 360}, 100%, 50%)`, // random color generator
-        seqNumber: 0
-    }
 
     console.log('connected!')
     io.emit('updatePlayers', backendPlayers) // updating players's position
-
-    socket.on('initCanvas', ({width, height}) => {
-        backendPlayers[socket.id].canvas = {
-            width, height
-        }
-    })
 
     socket.on('shoot', ({x, y, angle}) => {
         projID++;
         const velocity = { x: Math.cos(angle) * 8, y: Math.sin(angle) * 8 }
         backendProj[projID] = {
             x, y, velocity, playerID: socket.id
+        }
+    })
+
+    socket.on('initGame', ({username, width, height}) => {
+        backendPlayers[socket.id] = {
+            x: Math.round(Math.random() * 500),
+            y: Math.round(Math.random() * 500),
+            color: `hsl(${Math.random() * 360}, 100%, 50%)`, // random color generator
+            seqNumber: 0,
+            score: 0,
+            username: username
+        }
+
+        backendPlayers[socket.id].canvas = {
+            width, height
         }
     })
 
@@ -87,10 +90,13 @@ setInterval(() => {
 
             const dist = Math.hypot(backendProj[id].x - backPlayer.x, backendProj[id].y - backPlayer.y)
 
-            console.log(dist)
+            //console.log(dist)
 
             if (dist < 5 + 20 && backendProj[id].playerID !== playerID) {
-                console.log('got hit!')
+                //console.log('got hit!')
+                if (backendPlayers[backendProj[id].playerID]) {
+                    backendPlayers[backendProj[id].playerID].score++
+                }
                 delete backendProj[id]
                 delete backendPlayers[playerID]
                 break

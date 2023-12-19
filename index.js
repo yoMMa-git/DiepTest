@@ -11,11 +11,11 @@ const shapeScore = 100
 const enemyScore = 500
 
 canvas.width = innerWidth * devicePixelRatio
-canvas.height = innerHeight * devicePixelRatio // setting width and height of canvas (yeah, it's not refreshing with the change of size of window)
+canvas.height = innerHeight * devicePixelRatio // setting width and height of canvas
 
-const scale = 1.7 // i put everything to simple const which regulates main size of objects
+const scale = 1.7 // main size of objects
 const friction = 0.99 // const for slowing down particles
-const speed = 3 // speed of particles
+const speed = 3 // start speed of particles
 
 socket.on('updateProj', (backendProj) => {
     for (const id in backendProj) {
@@ -27,39 +27,37 @@ socket.on('updateProj', (backendProj) => {
             frontendProj[id].x += backendProj[id].velocity.x
             frontendProj[id].y += backendProj[id].velocity.y
         }
-    }
+    } // move projectiles
 
     for (const id in frontendProj) {
         if (!backendProj[id]) {
             delete frontendProj[id]
         }
-    } // deleting projectiles on client side if they're being disconnected
+    } // delete projectiles on client side if they've been disconnected
 })
 
 socket.on('updatePlayers', (backendPlayers) => { // updating positions of players
-    //console.log('called!')
-    for (const id in backendPlayers) { // for each passed player from the server (AKA backend)
+    for (const id in backendPlayers) {
+
         const backPlayer = backendPlayers[id]
-        //console.log(backPlayer)
+
         if (!frontendPlayers[id]) { // if ID don't have player, we create new player on the client (AKA frontend)
             frontendPlayers[id] = new Player({x: backPlayer.x, y: backPlayer.y, color: backPlayer.color, username: backPlayer.username})
             labels = document.querySelector("#playerLabels").innerHTML += `<div data-id="${id}" data-score="${backPlayer.score}">${backPlayer.username}: ${backPlayer.score}</div>`
-            
-            //console.log('created!')
         } else {
+
             document.querySelector(`div[data-id="${id}"]`).innerHTML = `${backPlayer.username}: ${backPlayer.score}`
-            document.querySelector(`div[data-id="${id}"]`).setAttribute('data-score', backPlayer.score)
-            //console.log(backPlayer.username)
+            document.querySelector(`div[data-id="${id}"]`).setAttribute('data-score', backPlayer.score) 
 
             const parentDiv = document.querySelector('#playerLabels')
-            const childDivs = Array.from(parentDiv.querySelectorAll('div'))
+            const childDivs = Array.from(parentDiv.querySelectorAll('div')) // create leaderboard with array of usernames
 
             childDivs.sort((a, b) => {
                 const scoreA = Number(a.getAttribute('data-score'))
                 const scoreB = Number(b.getAttribute('data-score'))
 
                 return scoreB - scoreA
-            })
+            }) // sort leaderboard
 
             childDivs.forEach((div) => {
                 parentDiv.removeChild(div)
@@ -67,14 +65,14 @@ socket.on('updatePlayers', (backendPlayers) => { // updating positions of player
 
             childDivs.forEach((div) => {
                 parentDiv.appendChild(div)
-            })
+            })  // update leaderboard
 
             if (id === socket.id) { // if it's client's player
                 frontendPlayers[id].x = backPlayer.x 
-                frontendPlayers[id].y = backPlayer.y //updating position of our tank
+                frontendPlayers[id].y = backPlayer.y //update position of player
     
                 const lastBackInputID = playerInputs.findIndex(input => {
-                    return backPlayer.seqNumber === input.seqNumber // getting sequence number
+                    return backPlayer.seqNumber === input.seqNumber // get seqNumber
                 })
     
                 if (lastBackInputID > -1) {
@@ -87,22 +85,22 @@ socket.on('updatePlayers', (backendPlayers) => { // updating positions of player
                     frontendPlayers[id].x += input.dx
                     frontendPlayers[id].y += input.dy // moving the player to current position
                 })
-            } else { // if we're talking about other players (non-client)
+            } else { // if we talk about other players (non-client)
                 frontendPlayers[id].x = backPlayer.x
-                frontendPlayers[id].y = backPlayer.y //updating positions of players
+                frontendPlayers[id].y = backPlayer.y //update positions of players
 
                 gsap.to(frontendPlayers[id], {
                     x: backPlayer.x,
                     y: backPlayer.y,
                     duration: 0.015,
                     ease: 'linear'
-                }) // making animation so the movement looks smoother
+                }) // make animation so the movement looks smoother
             }
 
         }
     }
 
-    for (const id in frontendPlayers) {
+    for (const id in frontendPlayers) { // for every player
         if (!backendPlayers[id]) {
             const divToDel = document.querySelector(`div[data-id="${id}"]`)
             divToDel.parentNode.removeChild(divToDel)
@@ -111,7 +109,7 @@ socket.on('updatePlayers', (backendPlayers) => { // updating positions of player
             }
             delete frontendPlayers[id]
         }
-    } // deleting players on client side if they're being disconnected
+    } // delete players on client side if they've been disconnected
 })
 
 class Player {
@@ -171,48 +169,6 @@ class Projectile {
     } // this method change the coordinate of projectile with the flow of time
 }
 
-
-class Shape {
-    constructor(x, y, type, size, color) {
-        this.x = x
-        this.y = y
-        this.type = type
-        this.size = size // side (rect/triangle) or radius (circle)
-        this.color = color
-    }
-
-    draw() {
-        context.beginPath()
-        //console.log(this.x)
-        switch (this.type) { //1 - square, 2 - triangle, 3 - circle
-            case 1:
-                context.rect(this.x - this.size / 2, this.y - this.size / 2, this.size, this.size)
-                context.fillStyle = this.color
-                context.fill()
-                break
-            case 2:
-                context.moveTo(this.x - this.size / 2, this.y + this.size / (2 * Math.sqrt(3)))
-                context.lineTo(this.x, this.y - this.size / Math.sqrt(3))
-                context.lineTo(this.x + this.size / 2, this.y + this.size / (2 * Math.sqrt(3)))
-                context.fillStyle = this.color
-                context.fill()
-                break
-            case 3:
-                context.arc(this.x, this.y, this.size / 2, 0, Math.PI * 2, false)
-                context.fillStyle = this.color
-                context.fill()
-                break
-        }
-    } // depending on type, draws object on the map
-
-    update() {
-        this.draw()
-        // TODO: 'animate' shapes so the game looks more dynamic
-        // this.x = this.x + this.velocity.x
-        // this.y = this.y + this.velocity.y
-    }
-}
-
 class Particle {
     constructor(x, y, radius, color, velocity) {
         this.x = x
@@ -243,17 +199,9 @@ class Particle {
     } // this method change the coordinate of particle with the flow of time
 }
 
-const x = canvas.width / 2;
-const y = canvas.height / 2; // the player is in the middle of screen
-
-let animID // var, but can't be used outside the box (in our situation - outside of the code)
-
+let animID
 function animate() {
-    animID = requestAnimationFrame(animate) // recursion function, ending when player dies
-
-    //context.fillStyle = 'rgba(0, 0, 0, 0.1)' // 0.1 in alpha argument makes this dynamic trail effect
-
-    //context.fillRect(0, 0, canvas.width, canvas.height) // clearing screen
+    animID = requestAnimationFrame(animate) // recursion function, ends when player die
 
     context.clearRect(0, 0, canvas.width, canvas.height)
 
@@ -266,37 +214,24 @@ function animate() {
         const project = frontendProj[id]
         project.draw()
     }
-}
+} // draw players and projectiles
 
 animate()
 
-// window.addEventListener('click', (event) => {
-
-//     const playerPos = {
-//         x: frontendPlayers[socket.id].x,
-//         y: frontendPlayers[socket.id].y
-//     }
-
-//     const angle = Math.atan2((event.clientY * window.devicePixelRatio) - (playerPos.y), (event.clientX * window.devicePixelRatio) - (playerPos.x))
-
-//     socket.emit('shoot', {
-//         x: playerPos.x,
-//         y: playerPos.y,
-//         angle
-//     })
-// })
-
 let shooting
+let angle
 ['mousedown', 'mouseup'].forEach((type) => {
     if (type === 'mousedown') {
 		window.addEventListener(type, (event) => {
+            window.addEventListener('mousemove', (event2) => {
+                angle = Math.atan2((event2.clientY * window.devicePixelRatio) - (frontendPlayers[socket.id].y), (event2.clientX * window.devicePixelRatio) - (frontendPlayers[socket.id].x))
+            })
+
             shooting = setInterval(() => {
                 const playerPos = {
                     x: frontendPlayers[socket.id].x,
                     y: frontendPlayers[socket.id].y
                 }
-            
-                const angle = Math.atan2((event.clientY * window.devicePixelRatio) - (playerPos.y), (event.clientX * window.devicePixelRatio) - (playerPos.x))
             
                 socket.emit('shoot', {
                     x: playerPos.x,
@@ -311,7 +246,7 @@ let shooting
             clearInterval(shooting)
         });
     }
-})
+}) // player shoots when mouse is being pressed
 
 
 const keys = {
@@ -393,4 +328,4 @@ document.querySelector('#usernameForm').addEventListener('submit', (event) => {
     event.preventDefault()
     document.querySelector('#usernameForm').style.display = 'none'
     socket.emit('initGame', {username: document.querySelector('#usernameInput').value, width: canvas.width, height: canvas.height, devicePixelRatio})
-})
+}) // when player inputs username, game starts for him

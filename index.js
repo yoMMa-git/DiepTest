@@ -42,14 +42,14 @@ socket.on('updatePlayers', (backendPlayers) => { // updating positions of player
         const backPlayer = backendPlayers[id]
         //console.log(backPlayer)
         if (!frontendPlayers[id]) { // if ID don't have player, we create new player on the client (AKA frontend)
-            frontendPlayers[id] = new Player({x: backPlayer.x, y: backPlayer.y, color: backPlayer.color})
+            frontendPlayers[id] = new Player({x: backPlayer.x, y: backPlayer.y, color: backPlayer.color, username: backPlayer.username})
             labels = document.querySelector("#playerLabels").innerHTML += `<div data-id="${id}" data-score="${backPlayer.score}">${backPlayer.username}: ${backPlayer.score}</div>`
             
             //console.log('created!')
         } else {
             document.querySelector(`div[data-id="${id}"]`).innerHTML = `${backPlayer.username}: ${backPlayer.score}`
             document.querySelector(`div[data-id="${id}"]`).setAttribute('data-score', backPlayer.score)
-            console.log(backPlayer.username)
+            //console.log(backPlayer.username)
 
             const parentDiv = document.querySelector('#playerLabels')
             const childDivs = Array.from(parentDiv.querySelectorAll('div'))
@@ -115,13 +115,21 @@ socket.on('updatePlayers', (backendPlayers) => { // updating positions of player
 })
 
 class Player {
-    constructor({x, y, color}) {
+    constructor({x, y, color, username}) {
         this.x = x
         this.y = y
         this.color = color
+        this.username = username
     }
 
     draw() {
+        context.font = '12px monospace'
+        context.fillStyle = 'white'
+        const textWidth = context.measureText(this.username).width
+        context.fillText(this.username, this.x - textWidth / 2, this.y+35)
+        context.save()
+        context.shadowColor = this.color
+        context.shadowBlur = 15
         context.strokeStyle = 'white'
         context.lineWidth = 3
         context.beginPath() // setting the start of the path
@@ -129,6 +137,7 @@ class Player {
         context.stroke()
         context.fillStyle = this.color // setting a color
         context.fill() // filling drawn rect
+        context.restore()
     }
 }
 
@@ -142,10 +151,17 @@ class Projectile {
     }
 
     draw() {
+        context.save()
+        context.shadowColor = this.color
+        context.shadowBlur = 10
         context.beginPath() // similar setting of path
+        context.strokeStyle = 'white'
+        context.lineWidth = 3
         context.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false) // drawing circle
+        context.stroke()
         context.fillStyle = this.color // setting the color
         context.fill() // filling the projectile
+        context.restore()
     }
 
     update() {
@@ -235,9 +251,11 @@ let animID // var, but can't be used outside the box (in our situation - outside
 function animate() {
     animID = requestAnimationFrame(animate) // recursion function, ending when player dies
 
-    context.fillStyle = 'rgba(0, 0, 0, 0.1)' // 0.1 in alpha argument makes this dynamic trail effect
+    //context.fillStyle = 'rgba(0, 0, 0, 0.1)' // 0.1 in alpha argument makes this dynamic trail effect
 
-    context.fillRect(0, 0, canvas.width, canvas.height) // clearing screen
+    //context.fillRect(0, 0, canvas.width, canvas.height) // clearing screen
+
+    context.clearRect(0, 0, canvas.width, canvas.height)
 
     for (const id in frontendPlayers) {
         const player = frontendPlayers[id]
@@ -252,21 +270,49 @@ function animate() {
 
 animate()
 
-window.addEventListener('click', (event) => {
+// window.addEventListener('click', (event) => {
 
-    const playerPos = {
-        x: frontendPlayers[socket.id].x,
-        y: frontendPlayers[socket.id].y
+//     const playerPos = {
+//         x: frontendPlayers[socket.id].x,
+//         y: frontendPlayers[socket.id].y
+//     }
+
+//     const angle = Math.atan2((event.clientY * window.devicePixelRatio) - (playerPos.y), (event.clientX * window.devicePixelRatio) - (playerPos.x))
+
+//     socket.emit('shoot', {
+//         x: playerPos.x,
+//         y: playerPos.y,
+//         angle
+//     })
+// })
+
+let shooting
+['mousedown', 'mouseup'].forEach((type) => {
+    if (type === 'mousedown') {
+		window.addEventListener(type, (event) => {
+            shooting = setInterval(() => {
+                const playerPos = {
+                    x: frontendPlayers[socket.id].x,
+                    y: frontendPlayers[socket.id].y
+                }
+            
+                const angle = Math.atan2((event.clientY * window.devicePixelRatio) - (playerPos.y), (event.clientX * window.devicePixelRatio) - (playerPos.x))
+            
+                socket.emit('shoot', {
+                    x: playerPos.x,
+                    y: playerPos.y,
+                    angle
+                })
+            }, 250)
+        });
+	}
+    else if (type === 'mouseup') {
+        window.addEventListener(type, () => {
+            clearInterval(shooting)
+        });
     }
-
-    const angle = Math.atan2((event.clientY * window.devicePixelRatio) - (playerPos.y), (event.clientX * window.devicePixelRatio) - (playerPos.x))
-
-    socket.emit('shoot', {
-        x: playerPos.x,
-        y: playerPos.y,
-        angle
-    })
 })
+
 
 const keys = {
     w: {pressed: false},

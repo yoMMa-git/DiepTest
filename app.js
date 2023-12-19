@@ -7,7 +7,7 @@ const server = http.createServer(app)
 const { Server } = require("socket.io")
 const io = new Server(server, { pingInterval: 2000, pingTimeout: 5000 }) // each 2s we're checking if we had response from client in the last 5 seconds, if not - disconnecting him from the server
 
-const port = 3000
+const port = 8080
 
 app.use(express.static(__dirname))
 
@@ -35,8 +35,8 @@ io.on('connection', (socket) => { // for one player use 'socket.emit()' (socket 
 
     socket.on('initGame', ({username, width, height}) => {
         backendPlayers[socket.id] = {
-            x: Math.round(Math.random() * 500),
-            y: Math.round(Math.random() * 500),
+            x: Math.round(Math.random() * 1920),
+            y: Math.round(Math.random() * 937),
             color: `hsl(${Math.random() * 360}, 100%, 50%)`, // random color generator
             seqNumber: 0,
             score: 0,
@@ -55,6 +55,9 @@ io.on('connection', (socket) => { // for one player use 'socket.emit()' (socket 
     }) // on disconnect we deleting player from array and updating players once more
 
     socket.on('keydown', ({key, seqNumber}) => {
+
+        if (!backendPlayers[socket.id]) return
+
         backendPlayers[socket.id].seqNumber = seqNumber
         switch (key) {
             case 'KeyW':
@@ -69,6 +72,29 @@ io.on('connection', (socket) => { // for one player use 'socket.emit()' (socket 
             case 'KeyD':
                 backendPlayers[socket.id].x += 5
                 break
+        }
+
+        const playerSides = {
+            left: backendPlayers[socket.id].x - 20,
+            right: backendPlayers[socket.id].x + 20,
+            top: backendPlayers[socket.id].y - 20,
+            bottom: backendPlayers[socket.id].y + 20
+        }
+
+        if (playerSides.left < 0) {
+            backendPlayers[socket.id].x = 20
+        }
+
+        if (playerSides.right > 1920) {
+            backendPlayers[socket.id].x = 1900
+        }
+
+        if (playerSides.top < 0) {
+            backendPlayers[socket.id].y = 20
+        }
+
+        if (playerSides.bottom > 937) {
+            backendPlayers[socket.id].y = 917
         }
     }) // moving our player
 })
@@ -108,6 +134,6 @@ setInterval(() => {
     io.emit('updatePlayers', backendPlayers)
 }, 15) // every 15ms we update players's position
 
-server.listen(port, () => {
+server.listen(port, '0.0.0.0', () => {
     console.log(`Game listening on port ${port}`)
 })

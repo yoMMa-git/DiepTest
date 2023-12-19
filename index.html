@@ -16,17 +16,19 @@
         }
 
         canvas {
-            width: 100%;
-            height: 100%;
-            background-color: black;
+            width: fit-content;
+            height: fit-content;
+            background-image: url('bg.gif');
+            background-color: rgba(255, 255, 255, 0.05);
+            background-blend-mode: lighten;
         }
     </style>
 </head>
 
 <body class="flex items-center justify-center">
     <div>
-        <div class="absolute p-8 font-sans text-sm select-none text-white">
-            <div class="mb-8">Leaderboard</div>
+        <div class="absolute p-8 font-mono text-sm select-none text-white">
+            <div class="mb-4">Leaderboard</div>
             <div id="playerLabels"></div>
         </div>
         <canvas></canvas>
